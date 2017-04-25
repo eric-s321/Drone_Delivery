@@ -9,6 +9,8 @@ WAYPOINT_COMMAND = 16
 SERVO_COMMAND = 183
 SERVO_NUMBER = 5
 PWM = 1500
+MIN_ALTITUDE = 0
+MAX_ALTITUDE = 100
 
 class MissionGenerator:
 
@@ -81,10 +83,66 @@ class MissionWindow:
         c = 0
         Label(self.mainFrame, text="Home Coordinates").grid(row=r, column=c)
         r += 1
-        for field in self.fields:
+        waypointNum = 1
+        for i,field in enumerate(self.fields):
+            #skip first 3 because they are for the home coordinates
+            #if i < 3:
+            #    continue
+            if i % 3 == 0 and i != 0:
+                r += 1
+                c = 0
+                Label(self.mainFrame, text="Waypoint {}".format(waypointNum)).grid(row=r, column=c)
+                waypointNum += 1
+                r += 1
             field.grid(row=r,column=c)
             c += 1
+        r += 1
+        c = 2
+        Button(self.mainFrame, text="Create Waypoint File", command=self.createFile).grid(row=r,column=c)
 
+    def createFile(self):
+        validInput = self.validateInput()
+        if validInput:
+            for coord in self.coords:
+                print(coord)
+
+
+    #returns false if input is invalid, true if valid
+    def validateInput(self):
+        LAT_TYPE = 0
+        LONG_TYPE = 1
+        ALT_TYPE = 2
+        fieldTypes = [LAT_TYPE, LONG_TYPE, ALT_TYPE]
+        typeIndex = 0
+        for i,field in enumerate(self.fields, start=1):
+            fieldType = fieldTypes[typeIndex % 3]
+            try:
+                currentField = float(field.get())
+                if fieldType == ALT_TYPE:
+                    if currentField < MIN_ALTITUDE or currentField > MAX_ALTITUDE:
+                        raise AltError
+                elif fieldType == LONG_TYPE:
+                    if currentField < 0 or currentField > 180:
+                        raise LongError
+                elif fieldType == LAT_TYPE:
+                    if currentField < 0 or currentField > 90:
+                        raise LatError
+                self.coords.append(currentField)
+                typeIndex += 1
+            except AltError:
+                messagebox.showinfo("Error", "Altitude must be between 0 and 100 inclusive")
+                return False
+            except LongError:
+                messagebox.showinfo("Error", "Longitude must be between 0 and 180 inclusive")
+                return False
+            except LatError:
+                messagebox.showinfo("Error", "Latitude must be between 0 and 90 inclusive")
+                return False
+            except ValueError:
+                messagebox.showinfo("Error", "All fields must be a valid number")
+                return False
+        return True
+                    
     def mainWindowTransition(self):
         validInput = True
         try:
@@ -112,6 +170,15 @@ class MissionWindow:
     def addTextFields(self, n):
         for i in range(n):
             self.fields.append(Entry(self.mainFrame))
+
+class AltError(Exception):
+    pass
+
+class LongError(Exception):
+    pass
+
+class LatError(Exception):
+    pass
 
 
 if __name__ == '__main__':
