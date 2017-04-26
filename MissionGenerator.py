@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import messagebox
+import sys
 
 TOP_HEIGHT = 20 #meters above the coordinate
 BOTTOM_HEIGHT = 3 #meters above the coordinate
@@ -22,17 +23,17 @@ class MissionGenerator:
         self.index = 0
 
     def createWaypointFile(self):
-        self.file = open(fileName, 'w')
+        self.file = open(self.fileName, 'w')
         self.file.write('QGC WPL {}\n'.format(VERSION)) #Leading line expected by parser
         homeStart = "{0}\t1\t0\t{1}\t0\t0\t0\t0\t{2}\t{3}\t{4}\t1\n".format(self.index, WAYPOINT_COMMAND, self.homeCoord.longitude,
                             self.homeCoord.latitude, self.homeCoord.altitude)
         self.file.write(homeStart)
         self.index += 1
-        for coord in coords:
-            self.writeCoord(coord, altitude + TOP_HEIGHT)
-            self.writeCoord(coord, altitude + BOTTOM_HEIGHT)
+        for coord in self.coords:
+            self.writeCoord(coord, coord.altitude + TOP_HEIGHT)
+            self.writeCoord(coord, coord.altitude + BOTTOM_HEIGHT)
             self.activateServo()
-            self.writeCoord(coord, altitude + TOP_HEIGHT)
+            self.writeCoord(coord, coord.altitude + TOP_HEIGHT)
 
         homeEnd = "{0}\t0\t0\t{1}\t0\t0\t0\t0\t{2}\t{3}\t{4}\t1\n".format(self.index, WAYPOINT_COMMAND, self.homeCoord.longitude,
                             self.homeCoord.latitude, self.homeCoord.altitude)
@@ -63,6 +64,7 @@ class MissionWindow:
         self.root = root
         self.frame1 = Frame(self.root)
         self.mainFrame = Frame(self.root)
+        self.endFrame = Frame(self.root)
         self.frame1.pack()
         self.coords = []
         self.fields = []
@@ -81,9 +83,11 @@ class MissionWindow:
     def mainWindowSetup(self):
         r = 0
         c = 0
-        Label(self.mainFrame, text="Home Coordinates").grid(row=r, column=c)
+        Label(self.mainFrame, text="Home Coordinates", font="Time 14 bold").grid(row=r, column=c, sticky=W)
         r += 1
         waypointNum = 1
+        labelNames = ["Lat: ", "Long: ", "Alt: "]
+        labelIndex = 0
         for i,field in enumerate(self.fields):
             #skip first 3 because they are for the home coordinates
             #if i < 3:
@@ -91,21 +95,29 @@ class MissionWindow:
             if i % 3 == 0 and i != 0:
                 r += 1
                 c = 0
-                Label(self.mainFrame, text="Waypoint {}".format(waypointNum)).grid(row=r, column=c)
+                Label(self.mainFrame, text="Waypoint {}".format(waypointNum), font="Time 14 bold").grid(row=r, column=c, sticky=W)
                 waypointNum += 1
                 r += 1
-            field.grid(row=r,column=c)
+            Label(self.mainFrame, text=labelNames[labelIndex % 3]).grid(row=r, column=c, sticky=E)
+            labelIndex += 1
+            c += 1
+            field.grid(row=r,column=c, sticky=W)
             c += 1
         r += 1
-        c = 2
-        Button(self.mainFrame, text="Create Waypoint File", command=self.createFile).grid(row=r,column=c)
+        c = 5
+        Button(self.mainFrame, text="Create Waypoint File", command=self.createFile).grid(row=r,column=c, sticky=E)
 
     def createFile(self):
         validInput = self.validateInput()
         if validInput:
-            for coord in self.coords:
-                print(coord)
-
+            homeCoord = Coordinate(self.coords[0], self.coords[1], self.coords[2])
+            missionCoords = []
+            for i in range(3, len(self.coords) - 1, 3):
+                coord = Coordinate(self.coords[i], self.coords[i+1], self.coords[i+2])
+                missionCoords.append(coord)
+            self.missionGenerator = MissionGenerator(self.numWaypoints, self.fileName, missionCoords, homeCoord)
+            self.missionGenerator.createWaypointFile()
+        self.presentEndFrame()
 
     #returns false if input is invalid, true if valid
     def validateInput(self):
@@ -122,10 +134,10 @@ class MissionWindow:
                     if currentField < MIN_ALTITUDE or currentField > MAX_ALTITUDE:
                         raise AltError
                 elif fieldType == LONG_TYPE:
-                    if currentField < 0 or currentField > 180:
+                    if currentField < -180 or currentField > 180:
                         raise LongError
                 elif fieldType == LAT_TYPE:
-                    if currentField < 0 or currentField > 90:
+                    if currentField < -90 or currentField > 90:
                         raise LatError
                 self.coords.append(currentField)
                 typeIndex += 1
@@ -133,10 +145,10 @@ class MissionWindow:
                 messagebox.showinfo("Error", "Altitude must be between 0 and 100 inclusive")
                 return False
             except LongError:
-                messagebox.showinfo("Error", "Longitude must be between 0 and 180 inclusive")
+                messagebox.showinfo("Error", "Longitude must be between -180 and 180 inclusive")
                 return False
             except LatError:
-                messagebox.showinfo("Error", "Latitude must be between 0 and 90 inclusive")
+                messagebox.showinfo("Error", "Latitude must be between -90 and 90 inclusive")
                 return False
             except ValueError:
                 messagebox.showinfo("Error", "All fields must be a valid number")
@@ -167,6 +179,16 @@ class MissionWindow:
 
             self.mainFrame.pack()
 
+    def presentEndFrame(self):
+        self.mainFrame.grid_forget()
+        self.mainFrame.destroy()
+        Label(self.endFrame, text="File Successfully Created", font="Time 14 bold").grid(row=0,column=0)
+        Button(self.endFrame, text="Finish and Exit", command=self.exit).grid(row=1,column=1, sticky=S)
+        self.endFrame.pack()
+
+    def exit(self):
+        sys.exit()
+
     def addTextFields(self, n):
         for i in range(n):
             self.fields.append(Entry(self.mainFrame))
@@ -182,27 +204,26 @@ class LatError(Exception):
 
 
 if __name__ == '__main__':
-
     root = Tk()
     root.minsize(width=500,height=500)
     root.title('Mission Generator')
     window = MissionWindow(root)
     root.mainloop()
 
-    numWaypoints = int(input('How many waypoint?\n'))
-    fileName = input('What do you want to call the waypoint file?\n')
-    coords = []
-
-    homeLong = float(input('Longitude of starting coordinates\n'))
-    homeLat = float(input('Latitude of starting coordinates\n'))
-    homeAlt = float(input('Altitude of starting Coordinate\n'))
-    homeCoord = Coordinate(homeLong, homeLat, homeAlt)
-    for i in range(numWaypoints):
-        longitude = float(input('Longitude of waypoint {0}?\n'.format(i+1)))
-        latitude = float(input('Latitude of waypoint {0}?\n'.format(i+1)))
-        altitude = float(input('Altitude of waypoint {0}?\n'.format(i+1)))
-        coord = Coordinate(longitude, latitude, altitude)
-        coords.append(coord)
-
-    missionGenerator = MissionGenerator(numWaypoints, fileName, coords, homeCoord)
-    missionGenerator.createWaypointFile()
+#    numWaypoints = int(input('How many waypoint?\n'))
+#    fileName1 = input('What do you want to call the waypoint file?\n')
+#    coords = []
+#
+#    homeLong = float(input('Longitude of starting coordinates\n'))
+#    homeLat = float(input('Latitude of starting coordinates\n'))
+#    homeAlt = float(input('Altitude of starting Coordinate\n'))
+#    homeCoord = Coordinate(homeLong, homeLat, homeAlt)
+#    for i in range(numWaypoints):
+#        longitude = float(input('Longitude of waypoint {0}?\n'.format(i+1)))
+#        latitude = float(input('Latitude of waypoint {0}?\n'.format(i+1)))
+#        altitude = float(input('Altitude of waypoint {0}?\n'.format(i+1)))
+#        coord = Coordinate(longitude, latitude, altitude)
+#        coords.append(coord)
+#
+#    missionGenerator = MissionGenerator(numWaypoints, fileName1, coords, homeCoord)
+#    missionGenerator.createWaypointFile()
