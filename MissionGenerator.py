@@ -187,7 +187,8 @@ class MissionWindow:
         self.endFrame.pack()
 
     def exit(self):
-        sys.exit()
+        print("callling sys exit")
+        self.root.destroy()        
 
     def addTextFields(self, n):
         for i in range(n):
