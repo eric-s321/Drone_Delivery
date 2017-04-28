@@ -90,8 +90,6 @@ class MissionWindow:
         labelIndex = 0
         for i,field in enumerate(self.fields):
             #skip first 3 because they are for the home coordinates
-            #if i < 3:
-            #    continue
             if i % 3 == 0 and i != 0:
                 r += 1
                 c = 0
@@ -110,14 +108,19 @@ class MissionWindow:
     def createFile(self):
         validInput = self.validateInput()
         if validInput:
+            print('past valid input')
+            for field in self.fields:
+                self.coords.append(float(field.get()))
+                print('Adding: ' + field.get())
             homeCoord = Coordinate(self.coords[0], self.coords[1], self.coords[2])
             missionCoords = []
+            print(self.coords)
             for i in range(3, len(self.coords) - 1, 3):
                 coord = Coordinate(self.coords[i], self.coords[i+1], self.coords[i+2])
                 missionCoords.append(coord)
             self.missionGenerator = MissionGenerator(self.numWaypoints, self.fileName, missionCoords, homeCoord)
             self.missionGenerator.createWaypointFile()
-        self.presentEndFrame()
+            self.presentEndFrame()
 
     #returns false if input is invalid, true if valid
     def validateInput(self):
@@ -139,7 +142,6 @@ class MissionWindow:
                 elif fieldType == LAT_TYPE:
                     if currentField < -90 or currentField > 90:
                         raise LatError
-                self.coords.append(currentField)
                 typeIndex += 1
             except AltError:
                 messagebox.showinfo("Error", "Altitude must be between 0 and 100 inclusive")
