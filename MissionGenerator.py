@@ -108,13 +108,10 @@ class MissionWindow:
     def createFile(self):
         validInput = self.validateInput()
         if validInput:
-            print('past valid input')
             for field in self.fields:
                 self.coords.append(float(field.get()))
-                print('Adding: ' + field.get())
             homeCoord = Coordinate(self.coords[0], self.coords[1], self.coords[2])
             missionCoords = []
-            print(self.coords)
             for i in range(3, len(self.coords) - 1, 3):
                 coord = Coordinate(self.coords[i], self.coords[i+1], self.coords[i+2])
                 missionCoords.append(coord)
@@ -189,7 +186,6 @@ class MissionWindow:
         self.endFrame.pack()
 
     def exit(self):
-        print("callling sys exit")
         self.root.destroy()        
 
     def addTextFields(self, n):
