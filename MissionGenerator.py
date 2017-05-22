@@ -9,9 +9,16 @@ VERSION = 110
 WAYPOINT_COMMAND = 16
 SERVO_COMMAND = 183
 SERVO_NUMBER = 5
-PWM = 1500
+#PWM = 1500
 MIN_ALTITUDE = 0
 MAX_ALTITUDE = 100
+
+class ServoController:
+    def __init__(self):
+        self.points = []
+        for i in range(2300, 450, -205):
+            self.points.append(i)
+
 
 class MissionGenerator:
 
@@ -21,9 +28,11 @@ class MissionGenerator:
         self.coords = coords 
         self.homeCoord = homeCoord
         self.index = 0
+        self.servo = ServoController()
+        self.servoIndex = 1
 
     def createWaypointFile(self):
-        self.file = open(self.fileName, 'w')
+        self.file = open(self.fileName + ".waypoint", 'w')
         self.file.write('QGC WPL {}\n'.format(VERSION)) #Leading line expected by parser
         homeStart = "{0}\t1\t0\t{1}\t0\t0\t0\t0\t{2}\t{3}\t{4}\t1\n".format(self.index, WAYPOINT_COMMAND, self.homeCoord.longitude,
                             self.homeCoord.latitude, self.homeCoord.altitude)
@@ -47,6 +56,8 @@ class MissionGenerator:
         self.file.write(line)
 
     def activateServo(self):
+        PWM = self.servo.points[self.servoIndex]
+        self.servoIndex += 1
         line = "{0}\t0\t{1}\t{2}\t{3}\t{4}\t0\t0\t0\t0\t0\t1\n".format(self.index,
                             COORD_FRAME, SERVO_COMMAND, SERVO_NUMBER, PWM)
         self.index += 1
@@ -203,11 +214,16 @@ class LatError(Exception):
 
 
 if __name__ == '__main__':
+    servo = ServoController()
+  #  for point in servo.points:
+  #      print(point)
+
     root = Tk()
     root.minsize(width=500,height=500)
     root.title('Mission Generator')
     window = MissionWindow(root)
     root.mainloop()
+
 
 #    numWaypoints = int(input('How many waypoint?\n'))
 #    fileName1 = input('What do you want to call the waypoint file?\n')
