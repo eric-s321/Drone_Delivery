@@ -7,6 +7,7 @@ BOTTOM_HEIGHT = 3 #meters above the coordinate
 COORD_FRAME = 3
 VERSION = 110
 WAYPOINT_COMMAND = 16
+LAND_COMMAND = 21
 SERVO_COMMAND = 183
 SERVO_NUMBER = 5
 #PWM = 1500
@@ -18,7 +19,6 @@ class ServoController:
         self.points = []
         for i in range(2300, 450, -205):
             self.points.append(i)
-
 
 class MissionGenerator:
 
@@ -46,7 +46,15 @@ class MissionGenerator:
 
         homeEnd = "{0}\t0\t0\t{1}\t0\t0\t0\t0\t{2}\t{3}\t{4}\t1\n".format(self.index, WAYPOINT_COMMAND, self.homeCoord.longitude,
                             self.homeCoord.latitude, self.homeCoord.altitude)
+        #same as how coordinate expect a constant altitude of 5
+        #this is to set up landing
+        homeEndLow = "{0}\t0\t0\t{1}\t0\t0\t0\t0\t{2}\t{3}\t5\t1\n".format(self.index, WAYPOINT_COMMAND, self.homeCoord.longitude,
+                            self.homeCoord.latitude)
+        land = "{0}\t0\t0\t{1}\t0\t0\t0\t0\t0\t0\t0\t1\n".format(self.index, LAND_COMMAND)
+
         self.file.write(homeEnd)
+        self.file.write(homeEndLow)
+        self.file.write(land)
         self.file.close()
 
     def writeCoord(self, coord, altitude):
