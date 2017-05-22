@@ -32,7 +32,7 @@ class MissionGenerator:
         self.servoIndex = 1
 
     def createWaypointFile(self):
-        self.file = open(self.fileName + ".waypoint", 'w')
+        self.file = open(self.fileName + ".waypoints", 'w')
         self.file.write('QGC WPL {}\n'.format(VERSION)) #Leading line expected by parser
         homeStart = "{0}\t1\t0\t{1}\t0\t0\t0\t0\t{2}\t{3}\t{4}\t1\n".format(self.index, WAYPOINT_COMMAND, self.homeCoord.longitude,
                             self.homeCoord.latitude, self.homeCoord.altitude)
